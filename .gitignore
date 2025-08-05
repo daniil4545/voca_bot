@@ -1,0 +1,19 @@
+# Docker volumes
+n8n-data/
+downloads/
+
+# Model files
+whisper/models/*.bin
+whisper/models/*.ggml
+
+# Sensitive data
+.env
+*.json
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log

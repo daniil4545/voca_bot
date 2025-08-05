@@ -1,0 +1,73 @@
+services:
+    n8n:
+        image: n8nio/n8n
+        ports:
+            - "5678:5678"
+        volumes:
+            - ./n8n-data:/home/node/.n8n
+        environment:
+            - N8N_BASIC_AUTH_ACTIVE=true
+            - N8N_BASIC_AUTH_USER=admin
+            - N8N_BASIC_AUTH_PASSWORD=password
+            - EXECUTIONS_TIMEOUT=3600
+        networks:
+            - vocabot-net
+        depends_on:
+            - ollama
+            - whisper
+
+    ollama:
+        image: ollama/ollama
+        ports:
+            - "11434:11434"
+        volumes:
+            - ollama-data:/root/.ollama
+        networks:
+            - vocabot-net
+
+    ollama-init:
+        image: curlimages/curl
+        depends_on:
+            ollama:
+                condition: service_started
+        command: >
+            sh -c "
+            echo 'Ожидание запуска Ollama...' &&
+            sleep 15 &&
+            echo 'Загрузка модели llama3...' &&
+            curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"llama3\"}' -H 'Content-Type: application/json' &&
+            echo 'Модель llama3 загружена!'
+            "
+        networks:
+        - vocabot-net
+
+    whisper:
+        image: onerahmet/openai-whisper-asr-webservice:latest
+        container_name: whisper
+        ports:
+            - "9000:9000"
+        environment:
+            - ASR_MODEL=tiny  # Можно: tiny, base, small, medium, large
+            - ASR_ENGINE=openai_whisper
+            - WHISPER_CPU_THREADS=4
+        networks:
+            - vocabot-net
+
+    downloader:
+        image: python:3.11-slim
+        volumes:
+            - ./downloads:/downloads
+        networks:
+            - vocabot-net
+        command: >
+            sh -c "
+            pip install yt-dlp ffmpeg-python &&
+            echo 'yt-dlp installed successfully'
+            "
+
+networks:
+  vocabot-net:
+    driver: bridge
+
+volumes:
+  ollama-data:
